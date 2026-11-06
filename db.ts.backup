@@ -1,0 +1,87 @@
+﻿import Dexie, { type Table } from 'dexie'
+
+export interface DailyRecord {
+  date: string
+  waterMl: number
+  completedHabitIds: number[]
+  updatedAt: number
+}
+
+export interface StoredWorkout {
+  id: string
+  date: string
+  workoutName: string
+  durationMinutes: number
+  exerciseName: string
+  muscleGroup: string
+  sets: { setNumber: number; reps: number; weightKg: number }[]
+  notes?: string
+}
+
+export interface StoredRun {
+  id: string
+  date: string
+  distanceKm: number
+  durationMinutes: number
+  notes?: string
+}
+
+export interface StoredMeasurement {
+  id: string
+  date: string
+  weightKg: number
+  waistCm?: number
+  chestCm?: number
+  armCm?: number
+  hipCm?: number
+  notes?: string
+}
+
+export interface StoredFitnessGoal {
+  id: 'main'
+  targetWeightKg: number
+  weeklyGymSessions: number
+  weeklyRunningSessions: number
+}
+
+class LifeOSDatabase extends Dexie {
+  dailyRecords!: Table<DailyRecord, string>
+  workouts!: Table<StoredWorkout, string>
+  runs!: Table<StoredRun, string>
+  measurements!: Table<StoredMeasurement, string>
+  fitnessGoals!: Table<StoredFitnessGoal, string>
+
+  constructor() {
+    super('LifeOSDatabase')
+
+    this.version(1).stores({
+      dailyRecords: 'date, updatedAt',
+    })
+
+    this.version(2).stores({
+      dailyRecords: 'date, updatedAt',
+      workouts: 'id, date, workoutName, muscleGroup',
+      runs: 'id, date',
+      measurements: 'id, date',
+      fitnessGoals: 'id',
+    })
+  }
+}
+
+export const db = new LifeOSDatabase()
+
+export function getTodayKey(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export async function getDailyRecord(date: string): Promise<DailyRecord | undefined> {
+  return db.dailyRecords.get(date)
+}
+
+export async function saveDailyRecord(record: DailyRecord): Promise<void> {
+  await db.dailyRecords.put(record)
+}
